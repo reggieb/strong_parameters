@@ -64,7 +64,8 @@ module ActionController
           end
         end
       end
-
+      
+      return self if params.empty?
       params.permit!
     end
 

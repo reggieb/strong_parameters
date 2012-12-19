@@ -10,6 +10,12 @@ end
 class ActiveModelMassUpdateProtectionTest < ActiveSupport::TestCase
   test "forbidden attributes cannot be used for mass updating" do
     assert_raises(ActiveModel::ForbiddenAttributes) do
+      Person.new.sanitize_for_mass_assignment(ActionController::Parameters.new(:a => "b").permit(:c))
+    end
+  end
+  
+  test "attributes cannot be used for mass updating when nothing permitted" do
+    assert_raises(ActiveModel::ForbiddenAttributes) do
       Person.new.sanitize_for_mass_assignment(ActionController::Parameters.new(:a => "b"))
     end
   end
