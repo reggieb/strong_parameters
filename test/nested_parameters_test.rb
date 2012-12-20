@@ -22,7 +22,7 @@ class NestedParametersTest < ActiveSupport::TestCase
 
     permitted = params.permit :book => [ :title, { :authors => [ :name ] }, { :details => :pages } ]
 
-    assert permitted.permitted?
+    assert !permitted.permitted?, 'should not be true as not all param keys are in permit'
     assert_equal "Romeo and Juliet", permitted[:book][:title]
     assert_equal "William Shakespeare", permitted[:book][:authors][0][:name]
     assert_equal "Christopher Marlowe", permitted[:book][:authors][1][:name]

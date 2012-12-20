@@ -38,37 +38,20 @@ module ActionController
     alias :required :require
 
     def permit(*filters)
-      params = self.class.new
 
       filters.each do |filter|
         case filter
         when Symbol, String then
-          params[filter] = self[filter] if has_key?(filter)
-          keys.grep(/\A#{Regexp.escape(filter.to_s)}\(\d+[if]?\)\z/).each { |key| params[key] = self[key] }
+          check_key(filter)
         when Hash then
-          filter = filter.with_indifferent_access
-
-          self.slice(*filter.keys).each do |key, value|
-            return unless value
-
-            key = key.to_sym
-
-            params[key] = each_element(value) do |value|
-              # filters are a Hash, so we expect value to be a Hash too
-              next if filter.is_a?(Hash) && !value.is_a?(Hash)
-
-              value = self.class.new(value) if !value.respond_to?(:permit)
-
-              value.permit(*Array.wrap(filter[key]))
-            end
-          end
+          check_each_key_and_children(filter)
         end
       end
-      
-      return self if params.empty?
-      params.permit!
-    end
 
+      return been_checked if been_checked.empty? || !to_check.empty?
+      been_checked.permit!
+    end
+    
     def [](key)
       convert_hashes_to_parameters(key, super)
     end
@@ -102,6 +85,19 @@ module ActionController
           value
         end
       end
+      
+      def each_element(object)
+        if object.is_a?(Array)
+          object.map { |el| yield el }.compact
+        # fields_for on an array of records uses numeric hash keys
+        elsif object.is_a?(Hash) && object.keys.all? { |k| k =~ /\A-?\d+\z/ }
+          hash = object.class.new
+          object.each { |k,v| hash[k] = yield v }
+          hash
+        else
+          yield object
+        end
+      end
 
     private
       def convert_hashes_to_parameters(key, value)
@@ -113,16 +109,44 @@ module ActionController
         end
       end
 
-      def each_element(object)
-        if object.is_a?(Array)
-          object.map { |el| yield el }.compact
-        # fields_for on an array of records uses numeric hash keys
-        elsif object.is_a?(Hash) && object.keys.all? { |k| k =~ /\A-?\d+\z/ }
-          hash = object.class.new
-          object.each { |k,v| hash[k] = yield v }
-          hash
-        else
-          yield object
+      def been_checked
+        @been_checked ||= self.class.new
+      end
+
+      def to_check
+        @to_check ||= clone
+      end
+
+      def check_key(filter)
+        check_matching_key(filter)
+        check_matching_multi_parameter_keys(filter)
+      end
+
+      def check_matching_key(filter)
+        been_checked[filter] = to_check.delete(filter) if to_check.has_key?(filter)
+      end
+
+      def check_matching_multi_parameter_keys(filter)
+        to_check.keys.grep(/\A#{Regexp.escape(filter.to_s)}\(\d+[if]?\)\z/).each { |key| been_checked[key] = to_check.delete(key) }
+      end
+      
+      def check_each_key_and_children(filter)
+      
+        filter = filter.with_indifferent_access
+
+        to_check.slice(*filter.keys).each do |key, value|
+          return unless value
+
+          key = key.to_sym
+
+          been_checked[key] = to_check.each_element(value) do |value|
+            # filters are a Hash, so we expect value to be a Hash too
+            next if filter.is_a?(Hash) && !value.is_a?(Hash)
+
+            value = self.class.new(value) if !value.respond_to?(:permit)
+
+            value.permit(*Array.wrap(filter[key]))
+          end
         end
       end
   end

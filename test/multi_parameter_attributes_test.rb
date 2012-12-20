@@ -20,7 +20,7 @@ class MultiParameterAttributesTest < ActiveSupport::TestCase
 
     permitted = params.permit :book => [ :shipped_at, :price ]
 
-    assert permitted.permitted?
+    assert !permitted.permitted?, 'should not be true as published_at is not in permit'
 
     assert_equal "2012", permitted[:book]["shipped_at(1i)"]
     assert_equal "3", permitted[:book]["shipped_at(2i)"]
