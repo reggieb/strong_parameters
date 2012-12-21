@@ -14,7 +14,10 @@ module ActionController
 
   class Parameters < ActiveSupport::HashWithIndifferentAccess
     attr_accessor :permitted
-    alias :permitted? :permitted
+
+    def permitted?
+      to_check.empty?
+    end
 
     def initialize(attributes = nil)
       super(attributes)
@@ -28,6 +31,36 @@ module ActionController
       end
 
       @permitted = true
+      self
+    end
+    
+    def strengthen(filters)
+
+      filters.each do |key, value|
+        
+        key = key.to_s
+  
+        if value.to_s == 'require' and !has_key? key
+          missing_required_fields << key
+        end
+        
+        if value.kind_of? Hash
+          child = self.class.new(self[key])
+          begin
+            check_key(key) if child.strengthen(value).permitted? 
+          rescue ActionController::ParameterMissing => e
+            missing_required_fields << "#{key}:[#{e.message}]"
+          end
+        else
+          check_key(key)
+        end
+            
+      end
+ 
+      unless missing_required_fields.empty?
+        raise(ActionController::ParameterMissing.new(missing_required_fields.join(', ')))
+      end
+      
       self
     end
 
@@ -115,6 +148,10 @@ module ActionController
 
       def to_check
         @to_check ||= clone
+      end
+      
+      def missing_required_fields
+        @missing_required_fields ||= []
       end
 
       def check_key(filter)
