@@ -53,6 +53,7 @@ class ParametersTaintTest < ActiveSupport::TestCase
   end
 
   test "permitted is sticky on mutators" do
+    @params['something'] = 'else'
     @params.permit!
     assert @params.delete_if { |k, v| k == "person" }.permitted?
     assert @params.keep_if { |k, v| k == "person" }.permitted? if @params.respond_to?(:keep_if)

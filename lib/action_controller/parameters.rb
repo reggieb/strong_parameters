@@ -16,12 +16,11 @@ module ActionController
     attr_accessor :permitted
 
     def permitted?
-      to_check.empty?
+      to_check.empty? && !self.empty?
     end
 
     def initialize(attributes = nil)
       super(attributes)
-      @permitted = false
     end
 
     def permit!
@@ -29,8 +28,7 @@ module ActionController
         convert_hashes_to_parameters(key, value)
         self[key].permit! if self[key].respond_to? :permit!
       end
-
-      @permitted = true
+      @to_check = []
       self
     end
     
@@ -40,8 +38,12 @@ module ActionController
         
         key = key.to_s
   
-        if value.to_s == 'require' and !has_key? key
-          missing_required_fields << key
+        if value.to_s == 'require' 
+          if !has_key? key
+            missing_required_fields << key 
+          elsif self[key].kind_of? Hash and self[key].empty?
+            missing_required_fields << key
+          end
         end
         
         if value.kind_of? Hash
@@ -63,26 +65,28 @@ module ActionController
       
       self
     end
+    
+    def hash_from(array, value)
+      array = [array] unless array.kind_of? Array
+      array.collect! do |a| 
+        if a.kind_of?(Hash)
+          key = a.keys.first
+          [key, hash_from(a[key], value)]
+        else
+          [a, value]
+        end  
+      end
+      Hash[array]
+    end
 
-    def require(key)
-      self[key].presence || raise(ActionController::ParameterMissing.new(key))
+    def require(*filters)
+      strengthen(hash_from(filters, 'require'))
     end
 
     alias :required :require
 
     def permit(*filters)
-
-      filters.each do |filter|
-        case filter
-        when Symbol, String then
-          check_key(filter)
-        when Hash then
-          check_each_key_and_children(filter)
-        end
-      end
-
-      return been_checked if been_checked.empty? || !to_check.empty?
-      been_checked.permit!
+      strengthen(hash_from(filters, 'permit'))
     end
     
     def [](key)
@@ -97,14 +101,14 @@ module ActionController
 
     def slice(*keys)
       self.class.new(super).tap do |new_instance|
-        new_instance.instance_variable_set :@permitted, @permitted
+        new_instance.instance_variable_set :@to_check, @to_check
       end
     end
 
     def dup
       self.class.new(self).tap do |duplicate|
         duplicate.default = default
-        duplicate.instance_variable_set :@permitted, @permitted
+        duplicate.instance_variable_set :@to_check, @to_check
       end
     end
 
