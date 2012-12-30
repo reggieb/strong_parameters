@@ -17,6 +17,12 @@ class StrengthenTest < ActiveSupport::TestCase
   
   test "required not present" do   
     assert_raises(ActionController::ParameterMissing) do
+      @params.strengthen(:something_else => :required).permitted?
+    end
+  end
+  
+  test "require not present" do   
+    assert_raises(ActionController::ParameterMissing) do
       @params.strengthen(:something_else => :require).permitted?
     end
   end
@@ -30,7 +36,7 @@ class StrengthenTest < ActiveSupport::TestCase
   test "everything required is present" do
     assert(
       @params.strengthen(
-        :foo => :required, 
+        :foo => :require, 
         :things => {:one => :require, :two => :require}
       ).permitted?,
       "should return true when everything required is present"
@@ -50,11 +56,20 @@ class StrengthenTest < ActiveSupport::TestCase
     )
   end
     
-  test 'everything present is permitted' do
+  test 'everything present is permit' do
     assert(
       @params.strengthen(
         :foo => :permit, 
         :things => {:one => :permit, :two => :permit}
+      ).permitted?
+    )
+  end
+  
+  test 'everything present is permitted' do
+    assert(
+      @params.strengthen(
+        :foo => :permitted, 
+        :things => {:one => :permitted, :two => :permitted}
       ).permitted?
     )
   end
