@@ -68,4 +68,11 @@ class ChainedRequireAndPermitTest < ActiveSupport::TestCase
       !@params.require(:foo).permit(:things => [:one, :two]).require(:something_else)
     end
   end
+  
+  test 'require followed by permit on same object' do
+    assert_equal(
+      {'things' => @params['things']},
+      @params.require(:things).permit(:things => [:one, :two])
+    )
+  end
 end
