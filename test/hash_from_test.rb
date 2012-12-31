@@ -12,13 +12,13 @@ class HashFromTest < ActiveSupport::TestCase
   test "single level array to hash" do
     array = [:a, :b, :c]
     hash = {:a => @text, :b => @text, :c => @text}
-    assert_equal(hash, @params.hash_from(array, @text))
+    assert_equal(hash, @params.send(:hash_from, array, @text))
   end
   
   test 'multi-level array to hash' do
     array = [:a, {:b => [:c, :d]}, :e]
     hash = {:a => @text, :b => {:c => @text, :d => @text}, :e => @text}
-    assert_equal(hash, @params.hash_from(array, @text))
+    assert_equal(hash, @params.send(:hash_from, array, @text))
   end
   
   

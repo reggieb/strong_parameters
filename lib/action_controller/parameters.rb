@@ -51,19 +51,6 @@ module ActionController
        
     end
     
-    def hash_from(array, value)
-      array = [array] unless array.kind_of? Array
-      array.collect! do |a| 
-        if a.kind_of?(Hash)
-          key = a.keys.first
-          [key, hash_from(a[key], value)]
-        else
-          [a, value]
-        end  
-      end
-      Hash[array]
-    end
-
     def require(*filters)
       strengthen(hash_from(filters, REQUIRED_FLAGS.first))
     end
@@ -143,6 +130,19 @@ module ActionController
       end     
 
     private
+      def hash_from(array, value)
+        array = [array] unless array.kind_of? Array
+        array.collect! do |a| 
+          if a.kind_of?(Hash)
+            key = a.keys.first
+            [key, hash_from(a[key], value)]
+          else
+            [a, value]
+          end  
+        end
+        Hash[array]
+      end
+      
       def keys_all_numbers?
         /^[\-\d]+$/ =~ to_check.keys.join
       end
