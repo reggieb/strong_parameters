@@ -55,8 +55,6 @@ module ActionController
       strengthen(hash_from(filters, REQUIRED_FLAGS.first))
     end
 
-    alias :required :require
-
     def permit(*filters)
       strengthen(hash_from(filters, PERMITTED_FLAGS.first))
     end
