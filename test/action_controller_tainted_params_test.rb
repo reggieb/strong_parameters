@@ -2,11 +2,11 @@ require 'test_helper'
 
 class PeopleController < ActionController::Base
   def create
-    render :text => params[:person].permitted? ? "untainted" : "tainted"
+    render :text => params[:person].strengthened? ? "untainted" : "tainted"
   end
 
   def create_with_permit
-    render :text => params[:person].permit(:name).permitted? ? "untainted" : "tainted"
+    render :text => params[:person].permit(:name).strengthened? ? "untainted" : "tainted"
   end
 end
 
