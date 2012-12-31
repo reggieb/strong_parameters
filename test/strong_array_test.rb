@@ -36,14 +36,14 @@ class StrongArrayTest < ActiveSupport::TestCase
 
   test 'require with parameter missing' do
     assert_raise(ActionController::ParameterMissing) do
-      permitted = @params.strengthen(name: :require, born: :require)
+      @params.strengthen(name: :require, born: :require)
     end
   end
 
   test 'permit with parameter missing' do
-    permitted = @params.strengthen(name: :permit)
-    assert_equal 1, permitted.length
-    assert_equal(permitted.first.keys, @params[1].keys)
-    assert_equal(permitted.first.values, @params[1].values)
+    assert_equal(
+      [{'name' => "William Shakespeare"}, {'name' => "Christopher Marlowe"}],
+      @params.strengthen(name: :permit)
+    )
   end
 end

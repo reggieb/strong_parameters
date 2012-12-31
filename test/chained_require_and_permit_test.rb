@@ -22,38 +22,44 @@ class ChainedRequireAndPermitTest < ActiveSupport::TestCase
   end
   
   test "required is present" do
-    assert(
-      @params.require(:foo).require(:things => [:one, :two]).permitted?
+    assert_equal(
+      @params,
+      @params.require(:foo).require(:things => [:one, :two])
     )
   end
   
   test "part of param not within permitted" do
-    assert(
-      !@params.permit(:foo).permit(:something_else).permitted?
+    assert_equal(
+      {'foo' => :bar},
+      @params.permit(:foo).permit(:something_else)
     )
   end
   
   test 'when everything present is permitted' do   
-    assert(
-      @params.permit(:foo).permit(:things => [:one, :two]).permitted?
+    assert_equal(
+      @params,
+      @params.permit(:foo).permit(:things => [:one, :two])
     )
   end
   
   test 'everything present is within permitted' do
-   assert(
-      @params.permit(:foo).permit(:things => [:one, :two]).permit(:something_else).permitted?
-    )
+    assert_equal(
+      @params,
+        @params.permit(:foo).permit(:things => [:one, :two]).permit(:something_else)
+      )
   end
   
   test "everything present is permitted or required" do
-    assert(
-      @params.require(:foo).permit(:things => [:one, :two]).permitted?
+    assert_equal(
+      @params,
+      @params.require(:foo).permit(:things => [:one, :two])
     )
   end
   
   test 'everything present is within permitted or is required' do
-   assert(
-      @params.require(:foo).permit(:things => [:one, :two]).permit(:something_else).permitted?
+    assert_equal(
+      @params,
+      @params.require(:foo).permit(:things => [:one, :two]).permit(:something_else)
     )
   end
     

@@ -17,48 +17,38 @@ module ActionController
     REQUIRED_FLAGS = [:required, :require]
     PERMITTED_FLAGS = [:permitted, :permit] + REQUIRED_FLAGS
     
-    attr_accessor :permitted
-
-    def permitted?
-      replace been_checked
-      to_check.empty? && !self.empty?
+    def strengthened?
+      @strengthened
     end
+    alias :permitted? :strengthened?
+    
 
     def initialize(attributes = nil)
       super(attributes)
     end
 
     def permit!
+      replace to_check
+      @strengthened = true
       each_pair do |key, value|
         convert_hashes_to_parameters(key, value)
         self[key].permit! if self[key].respond_to? :permit!
       end
-      @to_check = []
+      
       self
     end
     
     def strengthen(filter = {})
+      return unless filter.kind_of? Hash
       
       filter = filter.with_indifferent_access
       
-      check_required(filter)
-
-      if filter.kind_of? Hash
-        to_check.delete_if do |key, value|
-          if filter[key]
-            if value.respond_to?(:strengthen)
-              been_checked[key] ||= {}
-              been_checked[key] = value.strengthen(filter[key]).been_checked
-            else
-              check_key(key) if permitted_flag?(filter[key])
-            end
-          end
-        end
-        
+      if keys_all_numbers?
+        strengthen_numbered_hash_as_array(filter)
+      else
+        strengthen_hash(filter)
       end
-
-      
-      self
+       
     end
     
     def hash_from(array, value)
@@ -106,6 +96,18 @@ module ActionController
         copy_instance_variables_to duplicate
       end
     end
+    
+    def check_required(filter)
+      if filter.kind_of? Hash
+        filter.each do |key, value|
+          flag_error_if_abscent(key) if required_flag?(value) or value.kind_of? Hash
+          to_check[key].check_required(value) if value.respond_to? :check_required and to_check.has_key? key
+        end
+      end
+      unless missing_required_fields.empty?
+        raise ActionController::ParameterMissing.new("'#{missing_required_fields.join("', '")}' required by #{filter}")
+      end
+    end 
 
     protected
       def convert_value(value)
@@ -138,9 +140,40 @@ module ActionController
 
       def to_check
         @to_check ||= clone
-      end
+      end     
 
     private
+      def keys_all_numbers?
+        /^[\-\d]+$/ =~ to_check.keys.join
+      end
+
+      def strengthen_numbered_hash_as_array(filter = {})
+        strong_array = StrongArray.new(to_check.values)
+        Hash[[to_check.keys.collect{|k| k.to_sym}, strong_array.strengthen(filter)].transpose]      
+      end
+
+      def strengthen_hash(filter = {})
+        check_required(filter)
+
+        to_check.each do |key, value|
+          multiparameterless_key = key.gsub(/\(\d+[fi]?\)$/, "")
+
+          if filter[multiparameterless_key]
+            if value.respond_to?(:strengthen)
+              stengthened_value = value.strengthen(filter[multiparameterless_key])
+              been_checked[key] = stengthened_value if stengthened_value
+            else
+              check_key(key) if permitted_flag?(filter[multiparameterless_key])
+            end
+          end
+        end
+
+        @strengthened = true
+
+        replace been_checked
+      end
+      
+      
       def convert_hashes_to_parameters(key, value)
         if value.is_a?(Parameters) || !value.is_a?(Hash)
           value
@@ -164,30 +197,20 @@ module ActionController
       end
 
       def check_matching_multi_parameter_keys(key)
-        to_check.keys.grep(/\A#{Regexp.escape(key.to_s)}\(\d+[if]?\)\z/).each { |key| been_checked[key] = to_check.delete(key) }
+        to_check.keys.grep(/\A#{Regexp.escape(key.to_s)}\(\d+[fi]?\)\z/).each { |key| been_checked[key] = to_check[key] }
       end
       
       def copy_instance_variables_to(other_instance)
         other_instance.instance_variable_set :@to_check, @to_check
         other_instance.instance_variable_set :@been_checked, @been_checked
+        other_instance.instance_variable_set :@strengthened, @strengthened
       end
       
       def flag_error_if_abscent(key)
-        if !has_key? key
+        if !to_check.has_key? key
           missing_required_fields << key 
-        elsif self[key].kind_of? Hash and self[key].empty?
+        elsif to_check[key].kind_of? Hash and to_check[key].empty?
           missing_required_fields << key
-        end
-      end
-      
-      def check_required(filter)
-        if filter.kind_of? Hash
-          filter.each do |key, value|
-            flag_error_if_abscent(key) if required_flag?(value)
-          end
-        end
-        unless missing_required_fields.empty?
-          raise ActionController::ParameterMissing.new(missing_required_fields)
         end
       end
 
@@ -222,21 +245,22 @@ module ActionController
   class StrongArray < Array
     
     def strengthen(filter = {})
-      original
-      each do |element|
+      original.each do |element|
         case element
         when Hash
-          params = ActionController::Parameters.new element
+          element = ActionController::Parameters.new element
         when Array
-          params = self.class.new element
-        else
-          params = self.class.new    
+          element = self.class.new element  
         end
         
-        strengthened = params.strengthen(filter)
-        
-        been_checked << strengthened if strengthened.permitted?
+        if element.respond_to? :strengthen
+          been_checked << element.strengthen(filter)
+        else
+          been_checked << element if Parameters::PERMITTED_FLAGS.include?(filter)
+        end
       end
+
+      @strengthened = true
       been_checked
     end
     
@@ -248,9 +272,14 @@ module ActionController
       @original ||= self.clone
     end
     
-    def permitted?
-      replace been_checked
-      original.length == been_checked.length
+    def strengthened?
+      @strengthened
+    end
+    alias :permitted? :strengthened?
+    
+    
+    def check_required(filter = {})
+      each{|e| e.check_required(filter) if e.respond_to? :check_required}
     end
 
   end

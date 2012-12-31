@@ -17,89 +17,96 @@ class StrengthenTest < ActiveSupport::TestCase
   
   test "required not present" do   
     assert_raises(ActionController::ParameterMissing) do
-      @params.strengthen(:something_else => :required).permitted?
+      @params.strengthen(:something_else => :required)
     end
   end
   
   test "require not present" do   
     assert_raises(ActionController::ParameterMissing) do
-      @params.strengthen(:something_else => :require).permitted?
+      @params.strengthen(:something_else => :require)
     end
   end
     
   test "parameters persent that are not in require" do
-    assert(
-      !@params.strengthen(:foo => :require).permitted?
+    assert_equal(
+      {'foo' => :bar},
+      @params.strengthen(:foo => :require)
     )
   end
     
   test "everything required is present" do
-    assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :require, 
         :things => {:one => :require, :two => :require}
-      ).permitted?,
-      "should return true when everything required is present"
+      )
     )
   end
   
-  test "not permitted as no permitted params present" do  
-    assert(
-      !@params.strengthen(:something_else => :permit).permitted?
+  test "no permitted params present" do  
+    assert_equal(
+      {},
+      @params.strengthen(:something_else => :permit)
     )
   end
   
-  test 'not permitted as only some permitted params present' do
-    assert(
-      !@params.strengthen(:foo => :permit).permitted?,
-      'should '
+  test 'only some permitted params present' do
+    assert_equal(
+      {'foo' => :bar},
+      @params.strengthen(:foo => :permit)
     )
   end
     
   test 'everything present is permit' do
-    assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :permit, 
         :things => {:one => :permit, :two => :permit}
-      ).permitted?
+      )
     )
   end
   
   test 'everything present is permitted' do
-    assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :permitted, 
         :things => {:one => :permitted, :two => :permitted}
-      ).permitted?
+      )
     )
   end
   
   test 'everything present is within permitted' do
-   assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :permit, 
         :things => {:one => :permit, :two => :permit},
         :something_else => :permit
-      ).permitted?
+      )
     )
   end
   
   test "everything present is permitted or required" do
-    assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :require, 
         :things => {:one => :permit, :two => :permit}
-      ).permitted?
+      )
     )
   end
   
   test "everything present is within permitted or is required" do 
-   assert(
+    assert_equal(
+      @params,
       @params.strengthen(
         :foo => :require, 
         :things => {:one => :permit, :two => :permit},
         :something_else => :permit
-      ).permitted?
+      )
     )   
   end
   
@@ -109,17 +116,23 @@ class StrengthenTest < ActiveSupport::TestCase
         :foo => :require, 
         :things => {:one => :permit, :two => :permit},
         :something_else => :require
-      ).permitted?
+      )
     end
   end
   
   test "child has missing required parameter" do 
-   assert_raises(ActionController::ParameterMissing) do
+    assert_raises(ActionController::ParameterMissing) do
       @params.strengthen(
         :foo => :require, 
         :things => {:one => :permit, :two => :permit, :three => :require},
         :something_else => :permit
-      ).permitted?
+      )
    end   
-  end  
+  end
+
+  test "strengthened?" do
+    assert !@params.strengthened?, "should not be true as strengthen not called"
+    @params.strengthen(:foo => :permit)
+    assert @params.strengthened?, "should be true as strengthen has been called"
+  end 
 end
