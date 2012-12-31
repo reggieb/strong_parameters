@@ -75,4 +75,11 @@ class ChainedRequireAndPermitTest < ActiveSupport::TestCase
       @params.require(:things).permit(:things => [:one, :two])
     )
   end
+  
+  test 'working with child parameter'  do
+    assert_equal(
+      @params['things'],
+      @params['things'].permit(:one, :two)
+    )
+  end
 end
