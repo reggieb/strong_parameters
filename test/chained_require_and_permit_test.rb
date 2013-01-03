@@ -17,14 +17,14 @@ class ChainedRequireAndPermitTest < ActiveSupport::TestCase
   
   test "required with one present and one missing" do   
     assert_raises(ActionController::ParameterMissing) do
-      @params.require(:foo).require(:something_else)
+      @params.strengthen(:foo => :require).strengthen(:something_else => :require)
     end
   end
   
   test "required is present" do
     assert_equal(
       @params,
-      @params.require(:foo).require(:things => [:one, :two])
+      @params.strengthen(:foo => :require).strengthen(:things => [:one => :require, :two => :require])
     )
   end
   
@@ -52,27 +52,27 @@ class ChainedRequireAndPermitTest < ActiveSupport::TestCase
   test "everything present is permitted or required" do
     assert_equal(
       @params,
-      @params.require(:foo).permit(:things => [:one, :two])
+      @params.strengthen(:foo => :require).permit(:things => [:one, :two])
     )
   end
   
   test 'everything present is within permitted or is required' do
     assert_equal(
       @params,
-      @params.require(:foo).permit(:things => [:one, :two]).permit(:something_else)
+      @params.strengthen(:foo => :require).permit(:things => [:one, :two]).permit(:something_else)
     )
   end
     
   test 'everything present is within permitted or is required, but something else is required' do
     assert_raises(ActionController::ParameterMissing) do
-      !@params.require(:foo).permit(:things => [:one, :two]).require(:something_else)
+      !@params.strengthen(:foo => :require).permit(:things => [:one, :two]).strengthen(:something_else => :require)
     end
   end
   
   test 'require followed by permit on same object' do
     assert_equal(
       {'things' => @params['things']},
-      @params.require(:things).permit(:things => [:one, :two])
+      @params.strengthen(:things => :require).permit(:things => [:one, :two])
     )
   end
   

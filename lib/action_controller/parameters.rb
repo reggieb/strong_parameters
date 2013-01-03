@@ -51,8 +51,9 @@ module ActionController
        
     end
     
-    def require(*filters)
-      strengthen(hash_from(filters, REQUIRED_FLAGS.first))
+    def require(key)
+      strengthen(key => REQUIRED_FLAGS.first)
+      to_check[key].presence
     end
 
     def permit(*filters)
