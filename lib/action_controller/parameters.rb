@@ -60,6 +60,10 @@ module ActionController
       strengthen(hash_from(filters, PERMITTED_FLAGS.first))
     end
     
+    def original
+      to_check
+    end
+    
     def [](key)
       convert_hashes_to_parameters(key, super)
     end

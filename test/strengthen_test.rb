@@ -135,4 +135,13 @@ class StrengthenTest < ActiveSupport::TestCase
     @params.strengthen(:foo => :permit)
     assert @params.strengthened?, "should be true as strengthen has been called"
   end 
+  
+  test 'original' do
+    original_params = @params.clone
+    @params.strengthen(:foo => :permit)
+    assert_equal(
+      original_params,
+      @params.original
+    )
+  end
 end
