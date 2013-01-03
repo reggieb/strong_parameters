@@ -25,8 +25,7 @@ In addition, parameters can be marked as required and flow through a predefined 
         # since you'll be able to reuse the same permit list between create and update. Also, you
         # can specialize this method with per-user checking of permissible attributes.
         def person_params
-          params.require(:person).permit(:person => [:name, :age])
-          params[:person]
+          params.require(:person).permit(:name, :age)
         end
     end
 
@@ -39,10 +38,6 @@ Thanks to Nick Kallen for the permit idea!
 You can also used strengthen to set permit and require together:
 
     params.strengthen(:person => {:name => :require, :age => :permit})
-
-Which is the equivalent of:
-
-    params.require(:person => [:name]).permit(:person => [:age])
 
 == Installation
 
